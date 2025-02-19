@@ -1,0 +1,5 @@
+local_env.source
+vendor
+
+#/bin/
+dex.db
