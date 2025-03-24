@@ -1,5 +1,4 @@
 # DEPRECATED: use config.yaml.dist and config.dev.yaml examples in the repository root.
-# TODO: keep this until all references are updated.
 
 # The base path of dex and the external name of the OpenID Connect service.
 # This is the canonical URL that all clients MUST use to refer to dex. If a
@@ -128,9 +127,10 @@ logger:
 staticClients:
 - id: example-app
   redirectURIs:
-  - 'http://127.0.0.1:5555/callback'
+  - 'http://127.0.0.1:8080/callback'
   name: 'Example App'
   secret: ZXhhbXBsZS1hcHAtc2VjcmV0
+# 
 #  - id: example-device-client
 #    redirectURIs:
 #      - /device/callback

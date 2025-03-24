@@ -1,9 +1,10 @@
-module goEchoWebOauth2Dex
+module example
 
 go 1.22.5
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/labstack/echo/v4 v4.13.3
 	golang.org/x/oauth2 v0.26.0
 )
