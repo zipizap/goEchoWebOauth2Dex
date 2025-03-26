@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"example/webserver"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/zipizap/goEchoWebOauth2Dex/webserver"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
