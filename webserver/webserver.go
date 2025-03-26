@@ -112,6 +112,7 @@ func oauthLoginHandler(c echo.Context) error {
 		HttpOnly: true,    // Block JS access to cookie
 		MaxAge:   15 * 60, // 15 minutes in seconds, for the oauth2 login to complete
 	}
+	stateCookie.SameSite = http.SameSiteLaxMode // Specify SameSite attribute
 	c.SetCookie(stateCookie)
 
 	// Redirect the user to Dex’s authorization endpoint.
@@ -132,7 +133,7 @@ func oauthCallbackHandler(c echo.Context) error {
 	// Retrieve the state we stored earlier.
 	stateCookie, err := c.Cookie("oauthstate")
 	if err != nil {
-		return c.String(http.StatusBadRequest, "State cookie not found")
+		return c.String(http.StatusBadRequest, fmt.Sprintf("State cookie not found  - %s", err))
 	}
 	if state != stateCookie.Value {
 		return c.String(http.StatusBadRequest, "Invalid state parameter")
@@ -229,24 +230,18 @@ func OauthIdTokenValidatorApiMiddleware(next echo.HandlerFunc) echo.HandlerFunc 
 		// Retrieve the ID token from the cookie.
 		cookie, err := c.Cookie("id_token")
 		if err != nil {
-			// Return 401 Unauthorized if no ID token is found.
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": "Login required",
-			})
+			// Verification failed - return 401 Unauthorized with json body containing error.
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Login required"})
 		}
-		rawIDToken := cookie.Value
 
 		// Verify the ID token.
-		ctx := context.Background()
-		_, err = OidcVerifier.Verify(ctx, rawIDToken)
+		idToken, err := OidcVerifier.Verify(context.Background(), cookie.Value)
 		if err != nil {
-			// Verification failed
-			// Return 401 Unauthorized if no ID token is found.
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": "Login required",
-			})
+			// Verification failed - return 401 Unauthorized with json body containing error.
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Login required"})
 		}
-		// Token is valid; proceed to the handler.
+		// Token is valid, continue to the next handler
+		c.Set("id_token", idToken) // store the token in the context
 		return next(c)
 	}
 }
