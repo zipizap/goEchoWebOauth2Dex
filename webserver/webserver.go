@@ -209,14 +209,23 @@ func OauthIdTokenValidatorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// Verify the ID token.
 		ctx := context.Background()
-		_, err = OidcVerifier.Verify(ctx, rawIDToken)
+		idToken, err := OidcVerifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			// If verification fails, force a login.
 			// Redirect to /login with original path as query parameter.
 			redirectTo := url.QueryEscape(c.Request().RequestURI)
 			return c.Redirect(http.StatusTemporaryRedirect, "/login?redirect="+redirectTo)
 		}
-		// Token is valid; proceed to the handler.
+
+		// Parse the idTokenClaims
+		var idTokenClaims map[string]interface{}
+		if err := idToken.Claims(&idTokenClaims); err != nil {
+			// If claims parsing fails, set claims to nil.
+			idTokenClaims = nil
+		}
+		c.Set("idTokenClaims", idTokenClaims) // store the token in the context
+
+		// Continue to the handler.
 		return next(c)
 	}
 }
@@ -240,8 +249,16 @@ func OauthIdTokenValidatorApiMiddleware(next echo.HandlerFunc) echo.HandlerFunc 
 			// Verification failed - return 401 Unauthorized with json body containing error.
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Login required"})
 		}
-		// Token is valid, continue to the next handler
-		c.Set("id_token", idToken) // store the token in the context
+
+		// Parse the idTokenClaims
+		var idTokenClaims map[string]interface{}
+		if err := idToken.Claims(&idTokenClaims); err != nil {
+			// If claims parsing fails, set claims to nil.
+			idTokenClaims = nil
+		}
+		c.Set("idTokenClaims", idTokenClaims) // store the token in the context
+
+		// Continue to the next handler
 		return next(c)
 	}
 }

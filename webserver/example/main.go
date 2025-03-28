@@ -49,28 +49,20 @@ func indexHandler(c echo.Context) error {
 // if the user is already authenticated (contains valid ID token as cookie).
 func privateHandler(c echo.Context) error {
 
-	// The cookie-and-claims code bellow is not necessary, as the authMiddleware already took care of verifying the ID token before reaching this handler.
-	// This code is left here as an example of how to extract claims from the ID token.
-	cookie, err := c.Cookie("id_token")
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "Missing ID token")
-	}
-
-	idToken, err := webserver.OidcVerifier.Verify(context.Background(), cookie.Value)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "Invalid ID token")
-	}
-
 	var claims map[string]interface{}
-	if err := idToken.Claims(&claims); err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to parse claims: %v", err))
+	claimsInterface := c.Get("idTokenClaims")
+	if claimsInterface != nil { // If the claims are not nil, cast them to the correct type
+		claims = claimsInterface.(map[string]interface{})
+	}
+	// If the claims are nil, the user is not authenticated and the page should not be served.
+	if claims == nil {
+		return c.String(http.StatusUnauthorized, "Login required")
 	}
 
 	return c.HTML(http.StatusOK, fmt.Sprintf(`<html>
 		<body>
 			<h1>Private</h1>
 			<p>Private access granted</p>
-			<p>ID_Token: %s</p>
 			<p>Claims: %v</p>
 			<ul>
 				<li><a href="/public">Public</a></li>
@@ -81,7 +73,7 @@ func privateHandler(c echo.Context) error {
 			</ul>
 			</p><hr></p>
 		</body>
-	</html>`, cookie.Value, claims))
+	</html>`, claims))
 }
 
 func checkAuthHandler(c echo.Context) error {
